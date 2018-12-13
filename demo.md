@@ -6,28 +6,37 @@ class: center, middle
 
 # Agenda
 
-1. Introduction
-2. Setup
-3. Simulations
+* Introduction
+* Setup
+* Simulations
+* Checks
+* Assertions
 
 ---
 
 # Introduction
 
-## What is Gatling
+## What is Gatling?
 An automated load testing tool which provides a Scala DSL for describing tests scenarios.
 
-Test scenarios are stored in regular .scala files.
+Scenarios might be thought as scripts for executing HTTP requests.
+
+Scenarios are stored in regular .scala files.
 
 https://gatling.io/docs/current
 
 ##Common uses
 
-Testing HTTP services. It also supports JMS, MQTT protocols.
+Test HTTP services response on heavy load.
+
+In addition to HTTP, Gatling supports JMS and MQTT protocols as well.
 
 ---
 
 #Setup
+
+Gatling can run stand alone, as part of ScalaTest tests or as an **SBT** plugin:
+
 `plugins.sbt`:
 ```scala
 addSbtPlugin("io.gatling" % "gatling-sbt" % "3.0.0")
@@ -41,8 +50,7 @@ libraryDependencies += "io.gatling.highcharts" % "gatling-charts-highcharts" % "
 libraryDependencies += "io.gatling"            % "gatling-test-framework"    % "3.0.0" % "test,it"
 ```
 
-##Caveats
-Files storing simulations must live under `test/scala` directory in order to Gatling SBT plugin to find them.
+**IMPORTANT:** Simulations must live under **`test/scala`** directory in order to Gatling SBT plugin to find them.
 
 ---
 
@@ -90,6 +98,22 @@ continued...
 
 ---
 
+## Generating requests
+
+```scala
+setUp(
+  scn.inject(rampUsers(300) during (10 seconds))
+)
+```
+
+Other injection expressions:
+
+* atOnceUsers(numberOfUsers)
+* constantUsersPerSec(rate) during (duration)
+* rampUsersPerSec(rate1) to (rate2) during(duration)
+
+---
+
 ## Checks
 Verify structure of HTTP responses.
 
@@ -118,7 +142,9 @@ headerRegex("FOO", "foo(.*)bar(.*)baz").ofType[(String, String)]
 ---
 
 ## Assertions
-Verify SLAs.
+Used for verifying SLAs.
+
+They are composed of: metric + condition
 
 ```scala
 setUp(scn).assertions(
@@ -126,6 +152,29 @@ setUp(scn).assertions(
   global.successfulRequests.percent.gt(95)
 )
 ```
+
+### More metrics
+
+* `responseTime`: target the response time in milliseconds.
+* `allRequests`: target the number of requests.
+* `failedRequests`: target the number of failed requests.
+* `successfulRequests`: target the number of successful requests.
+* `requestsPerSec`: target the rate of requests per second
+
+---
+
+### Conditions
+
+Conditions compare **the value** of the metric and the **threshold**:
+
+* `lt(threshold)`: the value is less than the threshold.
+* `lte(threshold)`: the value is less than or equal to the threshold.
+* `gt(threshold)`: the value is greater than the threshold.
+* `gte(threshold)`: the value is greater than or equal to the threshold.
+* `between(thresholdMin, thresholdMax)`: the value is between two thresholds.
+* `between(thresholdMin, thresholdMax, inclusive = false)`: same as above but doesn’t include bounds
+* `is(value)`: the value is equal to the given value.
+* `in(sequence)`: the value of metric is in a sequence.
 
 ---
 
@@ -151,3 +200,11 @@ There are many `index.html` report files as simulations defined in the project, 
 ![screenshot](gatling-report-requests-per-second.png)
 
 ---
+# Conclusion:
+
+## In real world, unit tests are not enough.
+## But we can do something about it!
+
+.center[![](one-does-not-simply-write-unit-tests.png)]
+
+.footnote[(Picture credit: https://automationpanda.com/2017/05/18/can-performance-tests-be-unit-test/)]
