@@ -1,41 +1,72 @@
 class: center, middle
 
-# Gatling Introduction
+# Introduction to Gatling
+
+---
+
+# Introduction to Gatling
+
+## Who am I?
+**Emiliano Menéndez**, backend services developer at Tienda Nube.
+
+## What is Gatling?
+An automated load testing tool for HTTP services.
 
 ---
 
 # Agenda
 
-* Introduction
+* General definitions
+* Introduction to Gatling
 * Setup
-* Simulations
-* Checks
-* Assertions
+* Main concepts
+* Live Demo
+* Conclusions
 
 ---
 
-# Introduction
+# General definitions
 
-## What is Gatling?
-An automated load testing tool which provides a Scala DSL for describing tests scenarios.
+**Load test**: A process that checks how a software component behaves under heavy usage.
 
-Scenarios might be thought as scripts for executing HTTP requests.
+**DSL**: Domain-Specific Language, a high-level language specialized to a particular application domain.
 
-Scenarios are stored in regular .scala files.
+**Scala**: An object oriented, functional programming language.
 
-https://gatling.io/docs/current
+**SBT**: Scala Build Tool, similar to Maven, Gradle, Gulp.
 
-##Common uses
+---
 
-Test HTTP services response on heavy load.
+# Introduction to Gatling
+
+**Gatling** (https://gatling.io) is an automated load testing tool which provides a Scala DSL for describing tests scenarios, known to Gatling as simulations.
+
+## Common uses
+
+Load test HTTP services performance on heavy load.
 
 In addition to HTTP, Gatling supports JMS and MQTT protocols as well.
 
+## Where did I use it?
+
+As part of the image upload service development, to load test the implementation.
+
 ---
 
-#Setup
+# Setup
 
-Gatling can run stand alone, as part of ScalaTest tests or as an **SBT** plugin:
+Gatling can be executed:
+
+* stand-alone using a CLI
+* as part of ScalaTest tests
+* with an SBT plugin
+
+---
+
+# Setup
+
+## SBT plugin
+In this presentation I'll show the setup of the SBT plugin.
 
 `plugins.sbt`:
 ```scala
@@ -50,41 +81,55 @@ libraryDependencies += "io.gatling.highcharts" % "gatling-charts-highcharts" % "
 libraryDependencies += "io.gatling"            % "gatling-test-framework"    % "3.0.0" % "test,it"
 ```
 
-**IMPORTANT:** Simulations must live under **`test/scala`** directory in order to Gatling SBT plugin to find them.
+**IMPORTANT:** Simulation files must live under **`test/scala`** directory in order to Gatling SBT plugin to be able to find them.
 
 ---
 
+# Main concepts
 
-#Simulations
+.center[
+## Simulations
+## Checks
+## Assertions
+]
 
-## A complete example
+---
+
+# Simulations
+
+## A concrete test case
+I want to test how an image repository service responds to mass uploads.
+
+## How do I describe the test with Gatling?
+Writing a **Simulation**.
+
+In Gatling, a simulation is the load test of a use case, written in Scala.
+
+A simulation might be thought as a script defining sequences of HTTP requests and the expected results.
+
+Simulation code is stored in regular .scala files.
+
+---
+
+# Simulations
+
+## Simulation code
+
 ```scala
-import io.gatling.core.Predef._
-import io.gatling.http.Predef._
-import scala.concurrent.duration._
-
 class ImageImportFromUrlSimulation {
- // We can pass parameters as system properties
- val serviceBaseUrl = System.getProperty("serviceBaseUrl", "http://localhost:9000")
- val imageUrl = System.getProperty("imageUrl", "http://localhost:9000/photo/no_photo/no_photo.jpeg")
-
  // HTTP client configuration
  val httpConf = http
-   .baseUrl(serviceBaseUrl)
-   .acceptEncodingHeader("gzip, deflate")
-```
+    .baseUrl("http://localhost:9000")
+    .acceptEncodingHeader("gzip, deflate")
 
-continued...
+ val imageUrl = "http://localhost:9000/photo/no_photo/no_photo.jpeg"
 
----
-
-```scala
  // The test scenario
  val scn = scenario("Image import from URL")
    .exec(http("import_from_url")
      .post("/import-from-url") // execute POST to the /import-from-url endpoint
      .header("Content-Type", "application/json")
-     .body(StringBody(s"""{ "url": "$imageUrl" }""")).asJson // using this JSON body
+     .body(StringBody(s"""{ "url": "$imageUrl" }""")).asJson
      .check(status.is(201)))
 
  setUp(
@@ -98,6 +143,8 @@ continued...
 
 ---
 
+# Simulations
+
 ## Generating requests
 
 ```scala
@@ -108,22 +155,39 @@ setUp(
 
 Other injection expressions:
 
+.remark-code[
 * atOnceUsers(numberOfUsers)
 * constantUsersPerSec(rate) during (duration)
 * rampUsersPerSec(rate1) to (rate2) during(duration)
+]
 
 ---
 
+# Simulations
+
 ## Checks
-Verify structure of HTTP responses.
+Verify the structure of HTTP responses.
 
-HTTP status: `check(status.is(201)))`, `check(status.not(500))`
+```scala
+ val scn = scenario("Image import from URL")
+   .exec(http("import_from_url")
+     .post("/import-from-url") // execute POST to the /import-from-url endpoint
+     .header("Content-Type", "application/json")
+     .body(StringBody(s"""{ "url": "$imageUrl" }""")).asJson
+     .check(status.is(201)))
+```
 
-CSS selector: `check(css("article.more a", "href"))`
+**HTTP status**: `check(status.is(201)))`, `check(status.not(500))`
+
+**CSS selector**: `check(css("article.more a", "href"))`
 
 More on: https://gatling.io/docs/current/http/http_check
 
-### Capture
+---
+
+# Simulations
+
+## Capture
 Checks also allows to capture data and reuse it in the simulation:
 
 ```scala
@@ -135,63 +199,107 @@ Checks also allows to capture data and reuse it in the simulation:
   .get("${computerURL}"))
 ```
 
-```scala
-headerRegex("FOO", "foo(.*)bar(.*)baz").ofType[(String, String)]
-```
-
 ---
 
-## Assertions
-Used for verifying SLAs.
+# Simulations
 
-They are composed of: metric + condition
+## Assertions
+Assertions verify Service Level Agreements for the HTTP services being tested.
+
+They are composed of: metric + condition:
 
 ```scala
 setUp(scn).assertions(
-  global.responseTime.max.lt(50),
+  global.responseTime.max.lt(50), // time in milliseconds
   global.successfulRequests.percent.gt(95)
 )
 ```
 
-### More metrics
-
-* `responseTime`: target the response time in milliseconds.
-* `allRequests`: target the number of requests.
-* `failedRequests`: target the number of failed requests.
-* `successfulRequests`: target the number of successful requests.
-* `requestsPerSec`: target the rate of requests per second
-
 ---
 
-### Conditions
+# Simulations
+
+## Metrics
+
+.remark-code[
+* responseTime: target the response time in milliseconds.
+* allRequests: target the number of requests.
+* failedRequests: target the number of failed requests.
+* successfulRequests: target the number of successful requests.
+* requestsPerSec: target the rate of requests per second
+]
+
+## Conditions
 
 Conditions compare **the value** of the metric and the **threshold**:
 
-* `lt(threshold)`: the value is less than the threshold.
-* `lte(threshold)`: the value is less than or equal to the threshold.
-* `gt(threshold)`: the value is greater than the threshold.
-* `gte(threshold)`: the value is greater than or equal to the threshold.
-* `between(thresholdMin, thresholdMax)`: the value is between two thresholds.
-* `between(thresholdMin, thresholdMax, inclusive = false)`: same as above but doesn’t include bounds
-* `is(value)`: the value is equal to the given value.
-* `in(sequence)`: the value of metric is in a sequence.
+
+.remark-code[
+* lt(threshold): the value is less than the threshold.
+* lte(threshold): the value is less than or equal to the threshold.
+* gt(threshold): the value is greater than the threshold.
+* gte(threshold): the value is greater than or equal to the threshold.
+* between(thresholdMin, thresholdMax): the value is between two thresholds.
+* between(thresholdMin, thresholdMax, inclusive = false): same as above but doesn’t include bounds
+* is(value): the value is equal to the given value.
+* in(sequence): the value of metric is in a sequence.
+]
 
 ---
 
-## Run Simulations
+# Misc notes
+
+* Simulation class files must live under **test/scala** directory (otherwise Gatling doesn't find them)
+
+* We can pass parameters to the simulation using system properties
+
+```scala
+class ImageImportFromUrlSimulation {
+ val serviceBaseUrl = System.getProperty("serviceBaseUrl", "http://localhost:9000")
+
+ val httpConf = http.baseUrl(serviceBaseUrl).acceptEncodingHeader("gzip, deflate")
+```
+
+---
+
+class: center, middle
+
+# Live Demo
+
+---
+
+# Demo
+
+## Run all Simulations
+
 ```bash
 sbt gatling:test
 ```
 
+## Run a single Simulation
+
+```bash
+$ sbt
+```
+and then inside SBT:
+```bash
+> gatling:testOnly computerdatabase.BasicSimulation
+```
+
+---
+
+# Demo
+
 ## Reports
 `sbt gatling:test` should output something like:
 
-```
+```bash
 Reports generated in 0s.
-Please open the following file: target/gatling/computerworld-20181211194330455/index.html
+Please open the following file:
+target/gatling/computerworld-20181211194330455/index.html
 ```
 
-Here `computerworld-20181211194330455/index.html` contains the reports for the simulation run.
+Here `computerworld-20181211194330455/index.html` contains the simulation result report.
 
 There are many `index.html` report files as simulations defined in the project, and the time of their execution.
 
@@ -200,11 +308,18 @@ There are many `index.html` report files as simulations defined in the project, 
 ![screenshot](gatling-report-requests-per-second.png)
 
 ---
-# Conclusion:
+# Conclusions
 
-## In real world, unit tests are not enough.
+## In the real world, unit tests are not enough.
+
 ## But we can do something about it!
 
 .center[![](one-does-not-simply-write-unit-tests.png)]
 
 .footnote[(Picture credit: https://automationpanda.com/2017/05/18/can-performance-tests-be-unit-test/)]
+
+---
+
+class: center, middle
+
+# Thanks!
