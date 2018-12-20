@@ -39,7 +39,7 @@ An automated load testing tool for HTTP services.
 
 # Introduction to Gatling
 
-**Gatling** (https://gatling.io) is an automated load testing tool which provides a Scala DSL for describing tests scenarios, known to Gatling as simulations.
+**Gatling** (https://gatling.io) is an automated load testing tool which provides a DSL for describing tests scenarios, known to Gatling as simulations.
 
 ## Common uses
 
@@ -61,6 +61,8 @@ Gatling can be executed:
 * as part of ScalaTest tests
 * with an SBT plugin
 
+Scala is only needed for writing the simulations, you can use Gatling on any project source.
+
 ---
 
 # Setup
@@ -75,13 +77,11 @@ addSbtPlugin("io.gatling" % "gatling-sbt" % "3.0.0")
 
 `build.sbt`:
 ```scala
-lazy val root = (project in file(".")).enablePlugins(PlayScala, GatlingPlugin)
+enablePlugins(GatlingPlugin)
 
 libraryDependencies += "io.gatling.highcharts" % "gatling-charts-highcharts" % "3.0.0" % "test,it"
 libraryDependencies += "io.gatling"            % "gatling-test-framework"    % "3.0.0" % "test,it"
 ```
-
-**IMPORTANT:** Simulation files must live under **`test/scala`** directory in order to Gatling SBT plugin to be able to find them.
 
 ---
 
@@ -103,11 +103,11 @@ I want to test how an image repository service responds to mass uploads.
 ## How do I describe the test with Gatling?
 Writing a **Simulation**.
 
-In Gatling, a simulation is the load test of a use case, written in Scala.
+In Gatling, a simulation is the load test of a use case, written in **Scala**.
 
-A simulation might be thought as a script defining sequences of HTTP requests and the expected results.
+A simulation might be thought as a script that defines sequences of HTTP requests and the expected results.
 
-Simulation code is stored in regular .scala files.
+Simulation code is stored in regular *.scala* files.
 
 ---
 
@@ -249,7 +249,7 @@ Conditions compare **the value** of the metric and the **threshold**:
 
 # Misc notes
 
-* Simulation class files must live under **test/scala** directory (otherwise Gatling doesn't find them)
+* Simulation class files must live under the default SBT tests directory **src/test/scala**, of **test/scala** for Play framework specific projects (otherwise Gatling doesn't find them)
 
 * We can pass parameters to the simulation using system properties
 
@@ -273,7 +273,7 @@ class: center, middle
 ## Run all Simulations
 
 ```bash
-sbt gatling:test
+$ sbt gatling:test
 ```
 
 ## Run a single Simulation
@@ -286,6 +286,11 @@ and then inside SBT:
 > gatling:testOnly computerdatabase.BasicSimulation
 ```
 
+or also:
+
+```bash
+$ sbt "gatling:testOnly computerdatabase.BasicSimulation"
+```
 ---
 
 # Demo
