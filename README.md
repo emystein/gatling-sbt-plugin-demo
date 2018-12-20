@@ -1,6 +1,6 @@
 Introduction to Gatling
 =======================
-Look at [url](demo.md).
+Look at [demo.md](demo.md).
 
 Gatling's SBT plugin demo
 =========================
